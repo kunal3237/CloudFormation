@@ -1,0 +1,93 @@
+#######################CloudFormation 
+In cloudformation , we have templates and stack. Template is json/yaml file which defines the resources and properties of the resources. Whereas provision the resoorces
+defined in the template.If you need to make changes to the running resources in a stack, you update the stack. Before making changes to your resources, you can generate a change set, which is a summary of your proposed changes. 
+Change sets allow you to see how your changes might impact your running resources, especially for critical resources, before implementing them.
+
+CloudFormation templates are divided into different sections, and each section is designed to hold a specific type of information.
+If some section being used in other section, Please take care of order defining the section
+#####################################################################################################################
+
+Avail Section ###################################
+---
+AWSTemplateFormatVersion: version date
+Description:
+  String
+Metadata:
+  template metadata
+Parameters:
+  set of parameters
+Rules:
+  set of rules
+Mappings:
+  set of mappings
+Conditions:
+  set of conditions
+Transform:
+  set of transforms
+Resources:
+  set of resources
+Outputs:
+  set of outputs
+#################################################
+
+
+Example of creating a user with CloudFormation:
+
+###########################################################################################################
+Defining the tempalte , Below are its conotents:
+Resources:                                                                                            ####Section to define resources
+  user2:                                                                                              #########################Logical Name i.e same like terraform where we define the name for the resourse
+    Type: AWS::IAM::User                                                                              ###Type of the resource  
+
+Outputs:                                                                                              ###Section to define output                                                    
+  myuseroutput:
+    Description: Information about the user created
+    Value: !Ref user2                                                                                ## Logical name is called for output
+  
+  myuseroutname:
+    Description: Information about the user created
+    Value: !Ref user2    
+    
+
+
+https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-iam-user.html        ####For every resource, there is property and output section please check that. This url shows the same for user
+https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/outputs-section-structure.html
+###################################################################
+Validating the template################
+kunal@kunal-Lenovo-U410:~/cloudFormation/chapter1$ aws cloudformation validate-template --template-body file://user.yaml --region ap-south-1
+{
+    "Parameters": [],
+    "Capabilities": [
+        "CAPABILITY_IAM"
+    ],  
+    "CapabilitiesReason": "The following resource(s) require capabilities: [AWS::IAM::User]"                            ####With this resource, Capabilties is required 
+}
+
+#################Creatieng the stack############
+
+kunal@kunal-Lenovo-U410:~/cloudFormation/chapter1$ aws cloudformation create-stack --stack-name myfirststack --template-body file://user.yaml --region ap-south-1
+
+An error occurred (InsufficientCapabilitiesException) when calling the CreateStack operation: Requires capabilities : [CAPABILITY_IAM]
+kunal@kunal-Lenovo-U410:~/cloudFormation/chapter1$ aws cloudformation create-stack --stack-name myfirststack --template-body file://user.yaml --region ap-south-1 --capabilities CAPABILITY_IAM
+{
+    "StackId": "arn:aws:cloudformation:ap-south-1:324769750091:stack/myfirststack/15946800-dd7e-11ef-93fd-021c0537c82f"
+}
+kunal@kunal-Lenovo-U410:~/cloudFormation/chapter1$ 
+
+###############################Deleting the stack ###########################
+kunal@kunal-Lenovo-U410:~/cloudFormation/chapter1$ aws cloudformation delete-stack --stack-name myfirststack  --region ap-south-1
+kunal@kunal-Lenovo-U410:~/cloudFormation/chapter1$ 
+
+#####################Important
+Normally template is stored in S#, if not defined then in system generated S3,AS I am using --template-body file://user.yaml. then it is not stored in any S3
+
+######################################################
+Details about each resources and its properties can be found here:
+
+https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-template-resource-type-ref.html
+
+For Example to create user wuth cloud formation, properties of use resource are defined here. Please check the "required: yes", If there is any property which is defined as required: yes, then it has to be defined
+
+https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-iam-user.html
+
+
