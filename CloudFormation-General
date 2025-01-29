@@ -46,7 +46,8 @@ Outputs:                                                                        
   
   myuseroutname:
     Description: Information about the user created
-    Value: !Ref user2    
+    Value: !GetAtt user2.Arn
+    
     
 
 
