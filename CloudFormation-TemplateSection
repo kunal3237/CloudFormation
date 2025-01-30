@@ -1,0 +1,112 @@
+######################################
+Template is a file whihc defines what contains info about the resources to be provisioned. Where stack is running instanace of that template.
+Template has many section. Sections can be used based on your requirement. Below are the sections available. We will use some of the section from that list as per our requirement.
+Please note that access is already set, so no code will show any cred in the examples. aws cli is configure to provide the access
+
+##################################################
+Avail Section ###################################
+---
+AWSTemplateFormatVersion: version date                                                  ####Latest version these days is '2010-09-09'
+Description:
+  String
+Metadata:
+  template metadata
+Parameters:                                                                          
+  set of parameters
+Rules:
+  set of rules
+Mappings:
+  set of mappings
+Conditions:
+  set of conditions
+Transform:
+  set of transforms
+Resources:
+  set of resources
+Outputs:
+  set of outputs
+
+###############################Resource Section######################
+As we would be creating resources on AWS then we would be using this section. With this you can use others as well
+
+##########################################################################
+AWSTemplateFormatVersion: 2010-09-09                                                                #version
+Description: My First cloudformation template to create a user
+
+Parameters:                                                                                        ###Parameter Definition
+  myvpc:                                                                                           ##3Logical Name 
+    Description: VPC to be passed as parameter to be assigned to SG
+    Type: AWS::EC2::VPC::Id                                                                        ###Type of the resource,Apart from normal Type we have AWS/System Manager defined Parametes as well. Using VPC type  
+    #Default: vpc-07a9e355737
+  myaz:
+    Type: List<AWS::EC2::AvailabilityZone::Name>                                                   #### List for availabilty Zone from available AWS type , Normal Type is AWS::ServiceName::ResourceType
+Resources:                                                                                          #### Defining resource
+  user1:
+    Type: AWS::IAM::User
+    Properties:                                                                                     ####resource Properties   
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AmazonS3ReadOnlyAccess
+      Policies:
+      - PolicyName: inlinepolicy
+        PolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+          - Effect: Allow
+            Action:
+            - "s3:List*"
+            Resource:
+            - "*"
+
+  mygroup1:                                                                                        ####Another resource
+    Type: AWS::IAM::Group
+    Properties:
+      GroupName: mygroup1
+      ManagedPolicyArns: 
+        - arn:aws:iam::aws:policy/AIOpsReadOnlyAccess
+
+  mysg:                                                                                          ####Another resource
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: My own created SG
+      GroupName: mysg
+      SecurityGroupIngress: 
+        - CidrIp: 0.0.0.0/0
+          IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+      Tags: 
+        -  Key: mytag
+           Value: mysg
+      VpcId: !Ref myvpc                                                                           #####Refencing vpc here with Ref Function       
+
+  myinstance:
+    Type: AWS::EC2::Instance
+    Properties:
+      AvailabilityZone: !Select [1,!Ref myaz]                                                    ### Refenecing AZ with Ref function and selectone of the AZ from list provided with Fn::Select finction, short form !Select [ index, listOfObjects ]
+      InstanceType: t2.micro
+      ImageId: ami-05fa46471b02db0ce
+      SecurityGroupIds:
+        - !GetAtt mysg.GroupId                                                                  ####Arrtibute used here. this Atribute is returened by mysg, Please check the doc which attributes are returned by each resource
+
+Outputs:                                                                                          #####Output from the stack,These acn be found on the cloud Formation console
+  user1:
+    Value: !GetAtt user1.Arn
+
+
+  mysg:
+    Value:  !GetAtt mysg.GroupId
+
+  mysg:
+    Value: !GetAtt mysg.VpcId  
+
+####################################Running the cloudformation command with above tempalte to create a stack
+
+kunal@kunal-Lenovo-U410:~/cloudFormation/chapter1$ aws cloudformation create-stack   --stack-name myfirststack   --template-body file://user1.yaml   --region ap-south-1   --capabilities CAPABILITY_NAMED_IAM   
+--profile sharma   --parameters     ParameterKey=myvpc,ParameterValue=$(aws ec2 describe-vpcs --profile sharma --region ap-south-1 --filter Name=is-default,Values=true --query "Vpcs[*].VpcId" 
+--output text)  ParameterKey=myaz,ParameterValue=\"ap-south-1a,ap-south-1b,ap-south-1c\"
+{
+    "StackId": "arn:aws:cloudformation:ap-south-1:222634390234:stack/myfirststack/1eb0bc90-df0e-11ef-9446-0ae727aa67eb"
+}
+
+"\" is used to provide multiple entries 
+
