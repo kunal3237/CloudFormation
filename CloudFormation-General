@@ -80,14 +80,14 @@ kunal@kunal-Lenovo-U410:~/cloudFormation/chapter1$ aws cloudformation delete-sta
 kunal@kunal-Lenovo-U410:~/cloudFormation/chapter1$ 
 
 #####################Important
-Normally template is stored in S#, if not defined then in system generated S3,AS I am using --template-body file://user.yaml. then it is not stored in any S3
+Normally template is stored in S3, if not defined then in system generated S3,AS I am using --template-body file://user.yaml. then it is not stored in any S3
 
 ######################################################
 Details about each resources and its properties can be found here:
 
 https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-template-resource-type-ref.html
 
-For Example to create user wuth cloud formation, properties of use resource are defined here. Please check the "required: yes", If there is any property which is defined as required: yes, then it has to be defined
+For Example to create user with cloud formation, properties of use resource are defined here. Please check the "required: yes", If there is any property which is defined as required: yes, then it has to be defined
 
 https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-iam-user.html
 
