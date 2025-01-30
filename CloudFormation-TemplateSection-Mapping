@@ -1,0 +1,46 @@
+###################Use case with rest of of Template section
+
+The  Mappings section helps you create key-value pairs that can be used to specify values based on certain conditions or dependencies. 
+Reseource is the required Section, However Other section are optional. I am including some of tjhe section to make you understand how these works.
+
+####################################################
+AWSTemplateFormatVersion: 2010-09-09
+Description: Test case with ampping section
+Parameters:                                                            ###Defined Parameters
+  myaz:
+    Type: AWS::EC2::AvailabilityZone::Name                              ####AWS Type
+Resources:
+  myinstance:
+    Type: AWS::EC2::Instance
+    Properties:
+      AvailabilityZone: !Ref myaz                                      ####Parameter Being referenced
+      ImageId: !FindInMap [RegionMap,!Ref myaz,MyAmi2]                ####Fn::FindInMap function to check the value in mapping
+      InstanceType: t2.micro
+
+
+
+Mappings:                                                            ###Mapping Being Defined      
+  RegionMap:                                                         ###Mapping Name 
+    ap-south-1a:                                                     ####Key       
+      MyAmi1: ami-05fa46471b02db0ce                                  ###Value1
+      MyAmi2: ami-02972a2a0ac299bb7                                  ####Value2
+    ap-south-1b:
+      MyAmi1: ami-05fa46471b02db0ce
+      MyAmi2: ami-02972a2a0ac299bb7
+    ap-south-1c:
+      MyAmi1: ami-05fa46471b02db0ce
+      MyAmi2: ami-02972a2a0ac299bb7
+
+Outputs:
+  myinstance:
+    Value: !GetAtt myinstance.PrivateIp      
+
+
+####################################################################
+kunal@kunal-Lenovo-U410:~/cloudFormation/chapter1$ aws cloudformation create-stack   --stack-name mysecondstack   --template-body file://user2.yaml   --region ap-south-1   --profile sharma   --parameters  ParameterKey=myaz,ParameterValue="ap-south-1b"
+{
+    "StackId": "arn:aws:cloudformation:ap-south-1:222634390234:stack/mysecondstack/380f8230-df21-11ef-9d87-0a73ffed8d3d"
+}
+kunal@kunal-Lenovo-U410:~/cloudFormation/chapter1$ aws cloudformation delete-stack --stack-name mysecondstack --region ap-south-1 --profile sharma
+kunal@kunal-Lenovo-U410:~/cloudFormation/chapter1$ 
+
