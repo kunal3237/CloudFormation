@@ -1,7 +1,7 @@
 ####################################################
 Test case for CreationPolicy/DeletionPolicy
 
-CreationPolicy attribute with a resource to prevent its status from reaching create complete until AWS CloudFormation receives a specified number of success signals or the timeout period is exceeded.
+CreationPolicy ATTRIBUTE with a resource to prevent its status from reaching create complete until AWS CloudFormation receives a specified number of success signals or the timeout period is exceeded.
 To signal a resource, you can use the cfn-signal helper script or SignalResource API.
 
 It Basically Delays resource completion.CreationPolicy is used to define the conditions under which a resource creation is considered complete.
