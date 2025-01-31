@@ -1,0 +1,70 @@
+####################################################
+Test case for CreationPolicy/DeletionPolicy
+
+CreationPolicy attribute with a resource to prevent its status from reaching create complete until AWS CloudFormation receives a specified number of success signals or the timeout period is exceeded.
+To signal a resource, you can use the cfn-signal helper script or SignalResource API.
+
+It Basically Delays resource completion.CreationPolicy is used to define the conditions under which a resource creation is considered complete.
+
+When we create EC2 instance, There are times when we have to install the softwares along with instance creation. But CloudForamtion mark the Stack Complete once it provision the respurce irrespective the status of softwares.
+But We need to check if the software installation is also complete or not. Else we have to do that manually.
+TO handle that situation, We can use Conditionpolicy. 
+ConditionPolicy is available for Below resources. There are other options avaialble as well like Wait Confdition, CFN-signal etc. We will discuss that later
+###################################################################################
+
+Support resources with CreationPolicy
+Auto Scaling Group
+EC2 instance
+AppStream
+CloudFormation WaitCondition
+
+#############################################################################
+
+Test case with ConditionPolicy
+######################################################
+
+AWSTemplateFormatVersion: 2010-09-09
+Description: To check CreationPolicy working with CreationPolicy
+
+Resources:
+  myinstance:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageId: ami-05fa46471b02db0ce
+      InstanceType: t2.micro
+
+    CreationPolicy:                                          ####Condition Policy, Here Cloudformation will wait for 3 Minutes to recieve one signal of success
+      ResourceSignal:
+       Timeout: PT3M
+       Count: 1
+
+That signal can be passed with CFN-SIGNAL to handle it aujtomatically. Howerver I am using the manual methos to show the working
+
+############################################################
+kunal@kunal-Lenovo-U410:~/cloudFormation/chapter1$ aws cloudformation list-stacks --stack-status-filter CREATE_IN_PROGRESS --region ap-south-1 --profile sharma
+{
+    "StackSummaries": [
+        {
+            "StackId": "arn:aws:cloudformation:ap-south-1:************:stack/myfirststack1/8fbe0620-dfd8-11ef-b57e-06df269008ed",
+            "StackName": "myfirststack1",
+            "TemplateDescription": "To check CreationPolicy working with CreationPolicy",
+            "CreationTime": "2025-01-31T13:37:48.957000+00:00",
+            "StackStatus": "CREATE_IN_PROGRESS",
+            "DriftInformation": {
+                "StackDriftStatus": "NOT_CHECKED"
+            }
+        }
+    ]
+}
+kunal@kunal-Lenovo-U410:~/cloudFormation/chapter1$ aws cloudformation signal-resource     --stack-name myfirststack1     --logical-resource-id myinstance     --status SUCCESS  --unique-id
+ test-signal --region ap-south-1 --profile sharma
+kunal@kunal-Lenovo-U410:~/cloudFormation/chapter1$ 
+
+If you send FAILURE signal, Create stack will fail
+##############################################Message in Stack Console to Recieve a SUCCESS message####################
+2025-01-31 19:08:23 UTC+0530  myinstance  CREATE_IN_PROGRESS Received SUCCESS signal with UniqueId test-signal
+
+################################################################################################################
+
+      
+
