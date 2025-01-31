@@ -105,7 +105,7 @@ kunal@kunal-Lenovo-U410:~/cloudFormation/chapter1$ aws cloudformation create-sta
 --profile sharma   --parameters     ParameterKey=myvpc,ParameterValue=$(aws ec2 describe-vpcs --profile sharma --region ap-south-1 --filter Name=is-default,Values=true --query "Vpcs[*].VpcId" 
 --output text)  ParameterKey=myaz,ParameterValue=\"ap-south-1a,ap-south-1b,ap-south-1c\"
 {
-    "StackId": "arn:aws:cloudformation:ap-south-1:222634390234:stack/myfirststack/1eb0bc90-df0e-11ef-9446-0ae727aa67eb"
+    "StackId": "arn:aws:cloudformation:ap-south-1:**************:stack/myfirststack/1eb0bc90-df0e-11ef-9446-0ae727aa67eb"
 }
 
 "\" is used to provide multiple entries 
