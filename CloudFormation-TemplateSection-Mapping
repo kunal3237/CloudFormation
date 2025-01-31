@@ -39,7 +39,7 @@ Outputs:
 ####################################################################
 kunal@kunal-Lenovo-U410:~/cloudFormation/chapter1$ aws cloudformation create-stack   --stack-name mysecondstack   --template-body file://user2.yaml   --region ap-south-1   --profile sharma   --parameters  ParameterKey=myaz,ParameterValue="ap-south-1b"
 {
-    "StackId": "arn:aws:cloudformation:ap-south-1:222634390234:stack/mysecondstack/380f8230-df21-11ef-9d87-0a73ffed8d3d"
+    "StackId": "arn:aws:cloudformation:ap-south-1:*************:stack/mysecondstack/380f8230-df21-11ef-9d87-0a73ffed8d3d"
 }
 kunal@kunal-Lenovo-U410:~/cloudFormation/chapter1$ aws cloudformation delete-stack --stack-name mysecondstack --region ap-south-1 --profile sharma
 kunal@kunal-Lenovo-U410:~/cloudFormation/chapter1$ 
