@@ -1,0 +1,73 @@
+#################We will see how condtions section works
+
+The optional Conditions section contains statements that define the circumstances under which entities are created or configured.
+ Each condition declaration includes a logical ID and intrinsic functions that are evaluated when you create or update a stack
+Condition finctions can be used with Conditions
+
+After you define all your conditions, you can associate them with resources and resource properties in the Resources and Outputs sections of a template.
+############################################
+AWSTemplateFormatVersion: 2010-09-09
+Description: To show how Pseudo parameters work
+
+Parameters:                                                                ####Defining parameter
+  mycondition:
+    Type: String
+    Default: user-4
+Conditions:
+  mycondition:
+    !Equals [!Ref mycondition,user-3]                                      #Defining Condition which will check if mycondition evaluates to user-3, As it is not equal to user-3, This statement is false    
+
+Resources:
+  myuser:
+    Type: AWS::IAM::User
+    Condition: mycondition                                                ####Calling condition
+    Properties:
+      
+      UserName: !Ref mycondition                                          ###If True username will evaluate to mycondition parameter
+     
+
+Outputs:
+  myuser:
+    Condition: mycondition                                              ####Using condition in output as well
+    Value: !Ref AWS::AccountId
+
+  myregion:
+    Value: !Ref AWS::Region
+  # mystackid:
+  # Value: !Ref AWS::StackId          
+
+@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@NO User created as condition was not true#################
+########################################################################################
+NOw Setting it to True, And user-3 is created
+
+######################################
+AWSTemplateFormatVersion: 2010-09-09
+Description: To show how Pseudo parameters work
+
+Parameters:
+  mycondition:
+    Type: String
+    Default: user-3
+Conditions:
+  mycondition:
+    !Equals [!Ref mycondition,user-3] 
+
+Resources:
+  myuser:
+    Type: AWS::IAM::User
+    Condition: mycondition
+    Properties:
+      
+      UserName: !Ref mycondition
+     
+
+Outputs:
+  myuser:
+    Condition: mycondition
+    Value: !Ref AWS::AccountId
+
+  myregion:
+    Value: !Ref AWS::Region
+  # mystackid:
+
+##################################################
