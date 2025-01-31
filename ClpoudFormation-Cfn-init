@@ -1,0 +1,9 @@
+################Cloud Formation provide Python helper script That can be used too insall software, start services on EC2 that are part of Stack
+I'll prepare a test case of the cfn-init here
+####################################################################################################################
+cfn-init – Use to retrieve and interpret resource metadata, install packages, create files, and start services on EC2
+
+We define Cfn-init type (AWS::CloudFormation::Init) in the metadata Section of the EC2 instalnce resource of the template:
+
+The cfn-init helper script reads template metadata from the AWS::CloudFormation::Init key and acts accordingly to install packages,write files to disks, Enable/start/stop services.
+The cfn-init helper script is typically run from an Amazon EC2 instance's or launch template's user data. Cfn-Init Looks for Metadata section 
