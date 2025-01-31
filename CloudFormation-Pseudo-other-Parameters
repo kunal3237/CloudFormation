@@ -1,0 +1,120 @@
+#######CloudFormation Provide Pseudo parameters to be used in the cloudformatin code.These are predefined by AWS
+I'll some of those to get make you understand the use of those Pseudo parameters
+Some Pseudo parameters
+##################################################
+AWS::Region
+AWS::StackId
+AWS::AccountId
+#######################################################################
+AWSTemplateFormatVersion: 2010-09-09
+Description: To show how Pseudo parameters work
+
+Resources:
+  myuser:
+    Type: AWS::IAM::User
+    Properties:
+      
+      UserName: !Sub "user1-${AWS::Region}"                                                  ##########Pesudo Parameters, !Sub Function used here to do the replacement in string
+
+Outputs:
+  myuser:
+    Value: !Ref AWS::AccountId                                                                ####Pesudo Parameters
+
+  myregion:
+    Value: !Ref AWS::Region                                                                    ####Pesudo Parameters, !Ref used here
+
+kunal@kunal-Lenovo-U410:~/cloudFormation/chapter1$ aws cloudformation create-stack --stack-name myfirststack --template-body file://user3.yaml --region ap-south-1 --capabilities CAPABILITY_NAMED_IAM --profile sharma
+{
+    "StackId": "arn:aws:cloudformation:ap-south-1:&&&&&&0:stack/myfirststack/a2385ef0-df91-11ef-ab2b-068517c3c147"
+}
+kunal@kunal-Lenovo-U410:~/cloudFormation/chapter1$ 
+
+$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
+
+AWSTemplateFormatVersion: 2010-09-09
+Description: To show how Pseudo parameters work
+
+Parameters:
+  mysystemmanagerparams:
+    Type: AWS::SSM::Parameter::Value<String>                                                  ####Defining parameter SSM value type 
+    Default: myuser                                                                            #####SSM parameter, It is value is internally set to user-3
+Resources:
+  myuser:
+    Type: AWS::IAM::User
+    Properties:
+      
+      UserName: !Ref mysystemmanagerparams                                                    ####Referencing the system manager service
+     
+
+Outputs:
+  myuser:
+    Value: !Ref AWS::AccountId
+
+  myregion:
+    Value: !Ref AWS::Region
+
+##############################################################################
+kunal@kunal-Lenovo-U410:~/cloudFormation/chapter1$ aws cloudformation create-stack --stack-name myfirststack --template-body file://user3.yaml --region ap-south-1 --capabilities CAPABILITY_NAMED_IAM --profile sharma
+{
+    "StackId": "arn:aws:cloudformation:ap-south-1:****:stack/myfirststack/70f666a0-dfac-11ef-ac41-02ed6e3689ad"
+}
+kunal@kunal-Lenovo-U410:~/cloudFormation/chapter1$ 
+
+############################################################################
+
+AWSTemplateFormatVersion: 2010-09-09
+Description: To show how Pseudo parameters work
+
+Resources:
+  myuser:
+    Type: AWS::IAM::User
+    Properties:
+      
+      UserName: "{{resolve:ssm:myuser}}"                                              #####Calline SSM service to get parameter value, And it is correctly being reflected to user-3 as per value stored
+     
+
+Outputs:
+  myuser:
+    Value: !Ref AWS::AccountId
+
+  myregion:
+    Value: !Ref AWS::Region
+
+########################################################################
+kunal@kunal-Lenovo-U410:~/cloudFormation/chapter1$ aws cloudformation create-stack --stack-name myfirststack --template-body file://user3.yaml --region ap-south-1 --capabilities CAPABILITY_NAMED_IAM --profile sharma
+{
+    "StackId": "arn:aws:cloudformation:ap-south-1:***************:stack/myfirststack/5ab580d0-dfaf-11ef-984c-028e38a7983b"
+}
+kunal@kunal-Lenovo-U410:~/cloudFormation/chapter1$ 
+##################################Important #########################################
+Using !Sub(Fn::Sub) Substitute Variables Syntax is 
+Fn:Sub 
+- variable
+-variable map
+
+!Sub allows string substitution in CloudFormation. "${myvar}" is the placeholder that gets replaced.
+The Fn::Sub function in AWS CloudFormation is used for string substitution. It allows you to dynamically insert variables (such as parameters, resource attributes, or pseudo parameters) into strings.
+
+##########################################################################
+AWSTemplateFormatVersion: 2010-09-09
+Description: To show how Pseudo parameters work
+
+Parameters:
+  mysystemmanagerparams:
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: myuser
+Resources:
+  myuser:
+    Type: AWS::IAM::User
+    Properties:
+      
+      UserName: !Sub "myuser-${mysystemmanagerparams}"                                              #####using Fn::Sub to substitute mysystemmanagerparams, Please use ${} whenever using !Sub to get that variable replaced with the value,myuser-user-3 is created
+     
+
+Outputs:
+  myuser:
+    Value: !Ref AWS::AccountId
+
+  myregion:
+    Value: !Ref AWS::Region
+############################################################################
