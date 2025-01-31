@@ -71,7 +71,7 @@ kunal@kunal-Lenovo-U410:~/cloudFormation/chapter1$ aws cloudformation create-sta
 An error occurred (InsufficientCapabilitiesException) when calling the CreateStack operation: Requires capabilities : [CAPABILITY_IAM]
 kunal@kunal-Lenovo-U410:~/cloudFormation/chapter1$ aws cloudformation create-stack --stack-name myfirststack --template-body file://user.yaml --region ap-south-1 --capabilities CAPABILITY_IAM
 {
-    "StackId": "arn:aws:cloudformation:ap-south-1:324769750091:stack/myfirststack/15946800-dd7e-11ef-93fd-021c0537c82f"
+    "StackId": "arn:aws:cloudformation:ap-south-1:**************:stack/myfirststack/15946800-dd7e-11ef-93fd-021c0537c82f"
 }
 kunal@kunal-Lenovo-U410:~/cloudFormation/chapter1$ 
 
