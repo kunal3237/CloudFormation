@@ -7,3 +7,157 @@ We define Cfn-init type (AWS::CloudFormation::Init) in the metadata Section of t
 
 The cfn-init helper script reads template metadata from the AWS::CloudFormation::Init key and acts accordingly to install packages,write files to disks, Enable/start/stop services.
 The cfn-init helper script is typically run from an Amazon EC2 instance's or launch template's user data. Cfn-Init Looks for Metadata section 
+
+To run the cfn-int, resource (EC2) from where this cfn-init would run, need some privs. Required Privs are:
+##################################################
+cloudformation:SignalResource
+cloudformation:DescribeStackResource
+####################################################
+So Better to create a role with these privs and also assign the profile to the instance
+##############################################################################
+
+AWSTemplateFormatVersion: 2010-09-09
+Description: To check CreationPolicy working with CreationPolicy
+
+Resources: 
+  MyInstance: 
+    Type: AWS::EC2::Instance
+    Metadata: 
+      AWS::CloudFormation::Init:                                ###Deining Metadata section. Cfn-inint looks for this section, so install/run the required packages/commands
+        config:                                                     #####Don't change the name, If you wan to change the name, Please use the configsets and define there the name
+          commands: 
+            test: 
+              command: "echo \"$CFNTEST\" > test.txt"              ####Here I am just using the command option, which will echo the value and create a file
+              env: 
+                CFNTEST: "I come from config1."
+              cwd: "~"                                            ######Working Directory is home
+
+    Properties:
+      SecurityGroups:
+        - !Ref mysg
+      ImageId: ami-05fa46471b02db0ce
+      InstanceType: t2.micro
+      AvailabilityZone: ap-south-1b
+      IamInstanceProfile: !Ref MyInstanceProfile
+      UserData: 
+        Fn::Base64: 
+          !Sub |
+            #!/bin/bash
+            yum update -y
+            yum install -y aws-cfn-bootstrap                                  #####################Installing the cfn packages
+            /opt/aws/bin/cfn-init -v \                                        ####Command to run the cfn-init,As mentioned above the reource should have reuired privs. Also mention the Stackid and Region. Else it will try to get the info from us-east-1 region
+              --stack ${AWS::StackId} \
+              --resource MyInstance --region ${AWS::Region}
+  mysg:                                                                        ####Createing the security group so that I can connect to the instance as well
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: inboud rules for myinstance
+      GroupName: mysg2
+
+      SecurityGroupIngress: 
+        - CidrIp: 0.0.0.0/0
+          FromPort: 22
+          ToPort: 22
+          IpProtocol: tcp          
+
+
+  
+  MyIAMRole:                                                                    ####Role creation with required privs
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: MyEC2Role
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ec2.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: CloudFormationAccess
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - cloudformation:SignalResource
+                  - cloudformation:DescribeStackResource
+                Resource: "*"
+  
+  MyInstanceProfile:                                                        ####Instance Profile creation
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      InstanceProfileName: MyEC2InstanceProfile
+      Roles:
+        - !Ref MyIAMRole
+       
+         
+Outputs:
+  myinstance:
+    Value: !GetAtt MyInstance.PublicDnsName
+  mystack:
+    Value: !Ref AWS::StackName  
+
+#################################################################################################
+kunal@kunal-Lenovo-U410:~/cloudFormation/chapter1$ aws cloudformation create-stack --stack-name myfirststack1 --template-body file://user4.yaml --region ap-south-1  --profile sharma --capabilities CAPABILITY_NAMED_IAM
+{
+    "StackId": "arn:aws:cloudformation:ap-south-1:&&&&&&&&&&&:stack/myfirststack1/3c823490-e0a0-11ef-ac61-0a96969c2ec1"
+}
+kunal@kunal-Lenovo-U410:~/cloudFormation/chapter1$ aws cloudformation list-stacks --stack-status-filter CREATE_COMPLETE --region ap-south-1 --profile sharma
+{
+    "StackSummaries": [
+        {
+            "StackId": "arn:aws:cloudformation:ap-south-1:****************:stack/myfirststack1/3-11ef-ac61-0a96969c2ec1",
+            "StackName": "myfirststack1",
+            "TemplateDescription": "To check CreationPolicy working with CreationPolicy",
+            "CreationTime": "2025-02-01T13:27:08.673000+00:00",
+            "StackStatus": "CREATE_COMPLETE",
+            "DriftInformation": {
+                "StackDriftStatus": "NOT_CHECKED"
+            }
+        }
+    ]
+}
+kunal@kunal-Lenovo-U410:~/cloudFormation/chapter1$ 
+
+################################################
+NOw Logs from the created resource EC2
+
+[root@@@@@@@@ log]# cat cfn-init-cmd.log 
+2025-02-01 13:28:18,111 P2230 [INFO] ************************************************************
+2025-02-01 13:28:18,111 P2230 [INFO] ConfigSet default
+2025-02-01 13:28:18,111 P2230 [INFO] ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+2025-02-01 13:28:18,111 P2230 [INFO] Config config
+2025-02-01 13:28:18,112 P2230 [INFO] ============================================================
+2025-02-01 13:28:18,112 P2230 [INFO] Command test
+2025-02-01 13:28:18,115 P2230 [INFO] Completed successfully.
+[root@@@@@@@@ log]# 
+
+$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$Cfn-init.log$$$$$$$$$$$$$$$$$$$$$$$$$$
+025-02-01 13:28:18,109 [INFO] -----------------------Starting build-----------------------
+2025-02-01 13:28:18,109 [DEBUG] Not setting a reboot trigger as scheduling support is not available
+2025-02-01 13:28:18,110 [INFO] Running configSets: default
+2025-02-01 13:28:18,111 [INFO] Running configSet default
+2025-02-01 13:28:18,111 [INFO] Running config config
+2025-02-01 13:28:18,111 [DEBUG] No packages specified
+2025-02-01 13:28:18,111 [DEBUG] No groups specified
+2025-02-01 13:28:18,111 [DEBUG] No users specified
+2025-02-01 13:28:18,111 [DEBUG] No sources specified
+2025-02-01 13:28:18,111 [DEBUG] No files specified
+2025-02-01 13:28:18,111 [DEBUG] Running command test
+2025-02-01 13:28:18,112 [DEBUG] No test for command test
+2025-02-01 13:28:18,115 [INFO] Command test succeeded                                                      #######################Showing that command was successful
+2025-02-01 13:28:18,115 [DEBUG] Command test output:
+2025-02-01 13:28:18,115 [DEBUG] No services specified
+2025-02-01 13:28:18,115 [INFO] ConfigSets completed
+2025-02-01 13:28:18,115 [DEBUG] Not clearing reboot trigger as scheduling support is not available
+2025-02-01 13:28:18,115 [INFO] -----------------------Build complete-----------------------
+
+#######################################################################
+
+[root@@@@@@@@ ~]# pwd;ls -ltr;cat test.txt 
+/root
+total 4
+-rw-r--r--. 1 root root 21 Feb  1 13:28 test.txt
+I come from config1.
+[root@@@@@@@@ ~]# 
