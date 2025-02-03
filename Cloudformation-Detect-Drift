@@ -1,0 +1,50 @@
+#######################Test case to check the Stack Drift###########################
+Stack drift will help us to check any drift in the resources Between Desired State and Current state
+Desired state tht is defined in the configution file whereas current state is actual resources.
+
+I had provisiioned resources with one template late on made cahnge on one of the resources manually
+########################################################
+
+Below is security Groiot that I had defined
+
+mysg:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: inboud rules for myinstance
+      GroupName: mysg2
+
+      SecurityGroupIngress: 
+        - CidrIp: 0.0.0.0/0
+          FromPort: 22
+          ToPort: 22
+          IpProtocol: tcp          
+
+####################################Made port 80 also available in this Security group manually###########################
+
+kunal@kunal-Lenovo-U410:~/cloudFormation/chapter1$ aws cloudformation detect-stack-drift --stack-name myfirststack1 --profile sharma --region ap-south-1
+{
+    "StackDriftDetectionId": "34d23970-e1fe-11ef-a7da-0233d294503f"
+}
+kunal@kunal-Lenovo-U410:~/cloudFormation/chapter1$ aws cloudformation describe-stack-resource-drifts --stack-name myfirststack1 --profile sharma --region ap-south-1 --query StackResourceDrifts[*].PropertyDifferences
+[
+    [],
+    [],
+    [],
+    [
+        {
+            "PropertyPath": "/SecurityGroupIngress/1",
+            "ExpectedValue": "null",
+            "ActualValue": "{\"CidrIp\":\"0.0.0.0/0\",\"FromPort\":80,\"IpProtocol\":\"tcp\",\"ToPort\":80}",
+            "DifferenceType": "ADD"                                                                                                  ### Stack Drift showing what is changed 
+        }
+    ]
+]
+kunal@kunal-Lenovo-U410:~/cloudFormation/chapter1$ 
+###################################Console will also show Below in drifts #########################
+	
+mysg
+mysg2 
+AWS::EC2::SecurityGroup
+MODIFIED
+2025-02-03 12:42:22 UTC+0530
+##############################################################################################
