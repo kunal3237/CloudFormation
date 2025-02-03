@@ -1,0 +1,136 @@
+##############ChangeSet help you to detect yuo the changes in the stack if you make any changes in the tempalte.
+
+MyInstance: 
+    Type: AWS::EC2::Instance
+    Metadata: 
+      AWS::CloudFormation::Init: 
+        config: 
+          files:
+            /tmp/a:
+              content: {
+                        "Status" : "SUCCESS",
+                        "Reason" : "Configuration Complete",
+                        "UniqueId" : "ID1234",
+                        "Data" : "Application has completed configuration."
+                        }
+            /etc/cfn/cfn-hup.conf:
+              content: !Join 
+                - ''
+                - - |
+                    [main]
+                  - stack=
+                  - !Ref 'AWS::StackId'
+                  - |+
+
+                  - region=
+                  - !Ref 'AWS::Region'
+                  - |+
+
+              
+              mode: '000400'
+              owner: root
+              group: root
+            /etc/cfn/hooks.d/cfn-auto-reloader.conf:
+              content: !Join 
+                - ''
+                - - |
+                    [cfn-auto-reloader-hook]
+                  - |
+                    triggers=post.update
+                  - >
+                    path=Resources.MyInstance.Metadata.AWS::CloudFormation::Init
+                  - 'action=/opt/aws/bin/cfn-init -v '
+                  - '         --stack '
+                  - !Ref 'AWS::StackName'
+                  - '         --resource MyInstance '
+                  - '         --configsets default '
+                  - '         --region '
+                  - !Ref 'AWS::Region'
+                  - |+
+
+                  - |
+                    runas=root
+              mode: '000400'
+              owner: root
+              group: root
+          services:
+            sysvinit:
+              cfn-hup:
+                enabled: 'true'
+                ensureRunning: 'true'
+                files:
+                  - /etc/cfn/cfn-hup.conf
+                  - /etc/cfn/hooks.d/cfn-auto-reloader.conf    
+          commands: 
+            test: 
+              command: "echo \"$CFNTEST\" > test.txt"
+              env: 
+                CFNTEST: "I come from config1."
+              cwd: "~"
+            test1: 
+              command: "echo \"$CFNTEST\" > test.txt"
+              env: 
+                CFNTEST: "I come from config-cfn-hup."
+              cwd: "~"
+
+    Properties:
+      SecurityGroups:
+        - !Ref mysg
+      ImageId: ami-05fa46471b02db0ce                                                                      #####Changed the ImageId after Stack Creation and then created a ChangeSet
+      #ImageId: ami-02972a2a0ac299bb7                                                                  #####Created Myinstance with this ImageID
+      InstanceType: t2.micro
+      AvailabilityZone: ap-south-1b
+
+###############################################################################
+kunal@kunal-Lenovo-U410:~/cloudFormation/chapter1$ aws cloudformation create-stack --stack-name myfirststack1 --template-body file://user4.yaml --region ap-south-1  --profile sharma --capabilities CAPABILITY_NAMED_IAM
+{
+    "StackId": "arn:aws:cloudformation:ap-south-1:**********************:stack/myfirststack1/4cc51400-e206-11ef-9be1-02019f54b187"
+}
+kunal@kunal-Lenovo-U410:~/cloudFormation/chapter1$ aws cloudformation create-change-set --stack-name myfirststack1 --change-set-name my-change-set --template-body file://user4.yaml --capabilities CAPABILITY_IAM --region ap-south-1 --profile sharma --capabilities CAPABILITY_NAMED_IAM
+{
+    "Id": "arn:aws:cloudformation:ap-south-1:**********************:changeSet/my-change-set/88eee2a3-4508-4db9-bb18-a5df337e51fb",
+    "StackId": "arn:aws:cloudformation:ap-south-1:**********************:stack/myfirststack1/4cc51400-e206-11ef-9be1-02019f54b187"
+}
+
+kunal@kunal-Lenovo-U410:~/cloudFormation/chapter1$ aws cloudformation describe-change-set --change-set-name my-change-set  --stack-name myfirststack1 --profile sharma --region ap-south-1 --query Changes[*].ResourceChange
+[
+    {
+        "PolicyAction": "ReplaceAndDelete",
+        "Action": "Modify",
+        "LogicalResourceId": "MyInstance",
+        "PhysicalResourceId": "i-03d6ed77f59defed1",
+        "ResourceType": "AWS::EC2::Instance",
+        "Replacement": "True",                                                                    ####Showing that It will replace the resource
+        "Scope": [
+            "Properties"
+        ],
+        "Details": [                                                                                    ####Showing what change are expected
+            {
+                "Target": {
+                    "Attribute": "Properties",
+                    "Name": "ImageId",
+                    "RequiresRecreation": "Always"
+                },
+                "Evaluation": "Static",
+                "ChangeSource": "DirectModification"
+            }
+        ]
+    }
+]
+kunal@kunal-Lenovo-U410:~/cloudFormation/chapter1$                 
+
+Executing the Change Set##################################
+
+
+kunal@kunal-Lenovo-U410:~/cloudFormation/chapter1$ aws cloudformation describe-stack-resource --stack-name myfirststack1 --logical-resource-id MyInstance --profile sharma --region ap-south-1 --query StackResourceDetail.PhysicalResourceId
+"i-03d6ed77f59defed1"                                                                ####Instance before executing Changeset
+kunal@kunal-Lenovo-U410:~/cloudFormation/chapter1$ aws cloudformation execute-change-set --change-set-name my-change-set --stack-name myfirststack1 --profile sharma --region ap-south-1
+
+#####################################################
+kunal@kunal-Lenovo-U410:~/cloudFormation/chapter1$ aws cloudformation describe-stack-resource --stack-name myfirststack1 --logical-resource-id MyInstance --profile sharma --region ap-south-1 --query StackResourceDetail.PhysicalResourceId
+"i-0e731b0feb57bfabe"                                                                            ####Instance after executing Changeset
+kunal@kunal-Lenovo-U410:~/cloudFormation/chapter1$ 
+
+kunal@kunal-Lenovo-U410:~/cloudFormation/chapter1$ aws cloudformation delete-change-set --change-set-name my-change-set --stack-name myfirststack1 --profile sharma --region ap-s
+outh-1
+kunal@kunal-Lenovo-U410:~/cloudFormation/chapter1$ 
