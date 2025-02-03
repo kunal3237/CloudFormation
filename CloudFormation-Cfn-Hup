@@ -1,0 +1,207 @@
+#################Test case for cfn-hup
+The cfn-hup helper is a daemon that detects changes in resource metadata and runs user-specified actions when a change is detected.
+Cfn-init by default runs only once when the resource is provisioned. However there are situation when we want to make the changes in the init. So cfn-hup moitors that apply the changes.
+This allows you to make configuration updates on your running Amazon EC2 instances through the UpdateStack API action.
+########################################################
+
+There are 3 important files to be used with cfn-hup. 
+/etc/cfn/cfn-hup.conf  --- Cfn-hup config file
+/etc/cfn/hooks.conf- ------ Defines various hooks
+hooks.conf	/etc/cfn/hooks.d/cfn-auto-reloader.conf  --- Listens for AWS::CloudFormation::Init changes only  ####So depending upon requirement please set the hooks
+
+Cfn_hup Does not restart the instance. It will restart the services if configured
+
+######################################$$$$$$$$############################################
+Snippet for cfn-hup only. This s not a complete template that I used. I am putting the contents which are reuired to show the changes. However this template has other resources as well.
+Resources: 
+  MyInstance: 
+    Type: AWS::EC2::Instance
+    Metadata: 
+      AWS::CloudFormation::Init: 
+        config: 
+          files:
+            /tmp/a:
+              content: {
+                        "Status" : "SUCCESS",
+                        "Reason" : "Configuration Complete",
+                        "UniqueId" : "ID1234",
+                        "Data" : "Application has completed configuration."
+                        }
+            /etc/cfn/cfn-hup.conf:                                                                            ######cfn-hup configuration file with belo contents
+              content: !Join 
+                - ''
+                - - |
+                    [main]
+                  - stack=
+                  - !Ref 'AWS::StackId'
+                  - |+
+
+                  - region=
+                  - !Ref 'AWS::Region'
+                  - |+
+
+              
+              mode: '000400'
+              owner: root
+              group: root
+            /etc/cfn/hooks.d/cfn-auto-reloader.conf:                                                    ############Hook to moitor the change in metadata--init 
+              content: !Join 
+                - ''
+                - - |
+                    [cfn-auto-reloader-hook]
+                  - |
+                    triggers=post.update                                                                    ###Trigger
+                  - >
+                    path=Resources.MyInstance.Metadata.AWS::CloudFormation::Init                          #####Defining what to monitor
+                  - 'action=/opt/aws/bin/cfn-init -v '                                                    ####What action to perform if any change detected
+                  - '         --stack '
+                  - !Ref 'AWS::StackName'
+                  - '         --resource MyInstance '
+                  - '         --configsets default '
+                  - '         --region '
+                  - !Ref 'AWS::Region'
+                  - |+
+
+                  - |
+                    runas=root
+              mode: '000400'
+              owner: root
+              group: root
+          services:
+            sysvinit:
+              cfn-hup:
+                enabled: 'true'
+                ensureRunning: 'true'
+                files:
+                  - /etc/cfn/cfn-hup.conf
+                  - /etc/cfn/hooks.d/cfn-auto-reloader.conf    
+          commands: 
+            test: 
+              command: "echo \"$CFNTEST\" > test.txt"
+              env: 
+                CFNTEST: "I come from config1."
+              cwd: "~"
+            # test1: 
+            #   command: "echo \"$CFNTEST\" > test.txt"
+            #   env: 
+            #     CFNTEST: "I come from config-cfn-hup."
+            #   cwd: "~"
+
+    Properties:
+      SecurityGroups:
+        - !Ref mysg
+      ImageId: ami-05fa46471b02db0ce
+      InstanceType: t2.micro
+      AvailabilityZone: ap-south-1b
+    
+      IamInstanceProfile: !Ref MyInstanceProfile
+      UserData: 
+        Fn::Base64: 
+          !Sub |
+            #!/bin/bash
+            yum update -y
+            yum install -y aws-cfn-bootstrap
+            /opt/aws/bin/cfn-init -v \
+              --stack ${AWS::StackId} \
+              --resource MyInstance --region ${AWS::Region}
+            curl -X PUT \
+              -H 'Content-Type:' --data-binary '{"Status" : "SUCCESS","Reason" : "Configuration Complete","UniqueId" : "ID1234","Data" : "Application has completed configuration."}' \
+              "${WaitHandle}"
+    # CreationPolicy:
+    #   ResourceSignal:    
+    #     Count: 1
+    #     Timeout: PT3M           
+
+################################################################
+
+
+kunal@kunal-Lenovo-U410:~/cloudFormation/chapter1$ aws cloudformation create-stack --stack-name myfirststack1 --template-body file://user4.yaml --region ap-south-1  --profile sharma --capabilities CAPABILITY_NAMED_IAM
+{
+    "StackId": "arn:aws:cloudformation:ap-south-1:****************:stack/myfirststack1/f18fce80-e1f7-11ef-a5d7-028e9e08bb15"
+}
+
+###########################Made change in the stack, Added below section in commands ##########################
+            test1: 
+              command: "echo \"$CFNTEST\" > test.txt"
+              env: 
+                CFNTEST: "I come from config-cfn-hup."
+              cwd: "~"
+
+################################################################################################
+kunal@kunal-Lenovo-U410:~/cloudFormation/chapter1$ aws cloudformation update-stack --stack-name  myfirststack1 --template-body file://user4.yaml --region ap-south-1  --profile sharma --capabilities CAPABILITY_NAMED_IAM 
+{
+    "StackId": "arn:aws:cloudformation:ap-south-1:****************:stack/myfirststack1/f18fce80-e1f7-11ef-a5d7-028e9e08bb15"
+}
+
+############################################################################################
+Once the stack is updated. Below logs showing all this info. Cfn-hup check the changes after every 15 minutes by defaul #########################Important
+#############################################################################################
+                        cfn-hub.log
+2025-02-03 06:28:56,698 [DEBUG] Describing resource MyInstance in stack arn:aws:cloudformation:ap-south-1:****************:stack/myfirststack1/f18fce80-e1f7-11ef-a5d7-028e9e08bb15
+2025-02-03 06:28:56,795 [DEBUG] No change in path Resources.MyInstance.Metadata.AWS::CloudFormation::Init for hook cfn-auto-reloader-hook
+2025-02-03 06:43:37,796 [INFO] cfn-hup processing is alive.
+2025-02-03 06:43:37,797 [DEBUG] Describing resource MyInstance in stack arn:aws:cloudformation:ap-south-1:****************:stack/myfirststack1/f18fce80-e1f7-11ef-a5d7-028e9e08bb15
+2025-02-03 06:43:37,870 [INFO] Data has changed from previous state; action for cfn-auto-reloader-hook will be run                                              #######Here the change is detectd
+2025-02-03 06:43:37,870 [INFO] Running action for cfn-auto-reloader-hook
+2025-02-03 06:43:39,053 [DEBUG] Action for cfn-auto-reloader-hook output: <None>
+
+########################################################################
+                  cfn-init.log
+2025-02-03 06:43:38,590 [INFO] -----------------------Starting build-----------------------
+2025-02-03 06:43:38,591 [DEBUG] Not setting a reboot trigger as scheduling support is not available
+2025-02-03 06:43:38,592 [INFO] Running configSets: default
+2025-02-03 06:43:38,593 [INFO] Running configSet default
+2025-02-03 06:43:38,594 [INFO] Running config config
+2025-02-03 06:43:38,594 [DEBUG] No packages specified
+2025-02-03 06:43:38,594 [DEBUG] No groups specified
+2025-02-03 06:43:38,594 [DEBUG] No users specified
+2025-02-03 06:43:38,594 [DEBUG] No sources specified
+2025-02-03 06:43:38,594 [DEBUG] /etc/cfn/cfn-hup.conf already exists
+2025-02-03 06:43:38,594 [DEBUG] Moving /etc/cfn/cfn-hup.conf to /etc/cfn/cfn-hup.conf.bak
+2025-02-03 06:43:38,595 [DEBUG] Writing content to /etc/cfn/cfn-hup.conf
+2025-02-03 06:43:38,595 [DEBUG] Setting mode for /etc/cfn/cfn-hup.conf to 000400
+2025-02-03 06:43:38,595 [DEBUG] Setting owner 0 and group 0 for /etc/cfn/cfn-hup.conf
+2025-02-03 06:43:38,596 [DEBUG] /etc/cfn/hooks.d/cfn-auto-reloader.conf already exists
+2025-02-03 06:43:38,596 [DEBUG] Moving /etc/cfn/hooks.d/cfn-auto-reloader.conf to /etc/cfn/hooks.d/cfn-auto-reloader.conf.bak
+2025-02-03 06:43:38,596 [DEBUG] Writing content to /etc/cfn/hooks.d/cfn-auto-reloader.conf
+2025-02-03 06:43:38,596 [DEBUG] Setting mode for /etc/cfn/hooks.d/cfn-auto-reloader.conf to 000400
+2025-02-03 06:43:38,596 [DEBUG] Setting owner 0 and group 0 for /etc/cfn/hooks.d/cfn-auto-reloader.conf
+2025-02-03 06:43:38,596 [DEBUG] /tmp/a already exists
+2025-02-03 06:43:38,596 [DEBUG] Moving /tmp/a to /tmp/a.bak
+2025-02-03 06:43:38,597 [DEBUG] Writing content to /tmp/a
+2025-02-03 06:43:38,597 [DEBUG] Content will be serialized as a JSON structure
+2025-02-03 06:43:38,597 [DEBUG] No mode specified for /tmp/a. Setting permissions of the existing file: 0o644.
+2025-02-03 06:43:38,597 [DEBUG] Running command test
+2025-02-03 06:43:38,597 [DEBUG] No test for command test
+2025-02-03 06:43:38,601 [INFO] Command test succeeded
+2025-02-03 06:43:38,601 [DEBUG] Command test output:
+2025-02-03 06:43:38,601 [DEBUG] Running command test1                                                                    #################cfn-init running after the change detected
+2025-02-03 06:43:38,601 [DEBUG] No test for command test1
+2025-02-03 06:43:38,604 [INFO] Command test1 succeeded                                                
+2025-02-03 06:43:38,604 [DEBUG] Command test1 output:
+2025-02-03 06:43:38,604 [DEBUG] Using service modifier: /sbin/chkconfig
+2025-02-03 06:43:38,604 [DEBUG] Setting service cfn-hup to enabled
+2025-02-03 06:43:38,991 [INFO] enabled service cfn-hup
+2025-02-03 06:43:38,992 [DEBUG] Using service runner: /sbin/service
+2025-02-03 06:43:39,020 [DEBUG] No need to modify running state of service cfn-hup
+2025-02-03 06:43:39,021 [INFO] ConfigSets completed
+2025-02-03 06:43:39,021 [DEBUG] Not clearing reboot trigger as scheduling support is not available
+2025-02-03 06:43:39,021 [INFO] -----------------------Build complete-----------------------
+
+#####################################################################  
+
+Entries in the conf and hook files:
+
+[root@ip-************ log]# cat /etc/cfn/cfn-hup.conf
+[main]
+stack=arn:aws:cloudformation:ap-south-1:****************:stack/myfirststack1/f18fce80-e1f7-11ef-a5d7-028e9e08bb15
+region=ap-south-1
+
+[root@ip-************ log]# 
+
+[cfn-auto-reloader-hook]
+triggers=post.update
+path=Resources.MyInstance.Metadata.AWS::CloudFormation::Init
+action=/opt/aws/bin/cfn-init -v          --stack myfirststack1         --resource MyInstance          --configsets default          --region ap-south-1
+runas=root
+[root@ip-************ log]# 
